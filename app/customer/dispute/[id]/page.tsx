@@ -19,7 +19,7 @@ interface ChatMessage {
 export default function DisputeIntakePage() {
   const params = useParams();
   const router = useRouter();
-  const transactionId = params.transactionId as string;
+  const transactionId = params.id as string;
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
