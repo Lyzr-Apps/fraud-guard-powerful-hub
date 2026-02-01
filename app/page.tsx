@@ -52,7 +52,7 @@ export default function HomePage() {
         </div>
 
         {/* Portal Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-16">
+        <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto mb-16">
           {/* Customer Portal */}
           <div
             onClick={() => router.push('/customer/dispute/txn-demo-001')}
@@ -87,6 +87,25 @@ export default function HomePage() {
             </p>
             <div className="flex items-center text-purple-600 font-semibold group-hover:gap-3 gap-2 transition-all">
               <span>Open Dashboard</span>
+              <span className="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </div>
+
+          {/* Agents Portal */}
+          <div
+            onClick={() => router.push('/agents')}
+            className="bg-white rounded-2xl p-8 border-2 border-gray-200 hover:border-[#00D4AA] hover:shadow-xl transition-all cursor-pointer group"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <FaRobot className="text-white text-3xl" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">AI Agents</h3>
+            <p className="text-gray-600 mb-6">
+              View and manage the AI agent workflow that powers the intelligent dispute
+              resolution system.
+            </p>
+            <div className="flex items-center text-orange-600 font-semibold group-hover:gap-3 gap-2 transition-all">
+              <span>View Workflow</span>
               <span className="group-hover:translate-x-1 transition-transform">→</span>
             </div>
           </div>
