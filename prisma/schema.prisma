@@ -1,0 +1,201 @@
+// Varo Card Dispute Management System - Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Customer Account Information
+model Customer {
+  id                    String   @id @default(cuid())
+  email                 String   @unique
+  firstName             String
+  lastName              String
+  accountCreatedAt      DateTime
+  averageMonthlyDeposits Float
+  currentBalance        Float
+  accountStatus         String   // excellent, good, fair, poor
+  hasOverdraftHistory   Boolean  @default(false)
+
+  disputes              Dispute[]
+  transactions          Transaction[]
+  authorizedUsers       AuthorizedUser[]
+  deviceFingerprints    DeviceFingerprint[]
+  gpsHistory            GPSHistory[]
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// Authorized family members/users
+model AuthorizedUser {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  name       String
+  relationship String // spouse, child, parent, etc.
+  addedAt    DateTime @default(now())
+
+  @@index([customerId])
+}
+
+// Device fingerprints for correlation
+model DeviceFingerprint {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  deviceId   String
+  deviceType String   // mobile, tablet, desktop
+  lastUsed   DateTime
+
+  @@index([customerId])
+  @@index([deviceId])
+}
+
+// GPS location history
+model GPSHistory {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  latitude   Float
+  longitude  Float
+  timestamp  DateTime
+  accuracy   Float?   // accuracy in meters
+
+  @@index([customerId, timestamp])
+}
+
+// Transaction records
+model Transaction {
+  id                    String   @id @default(cuid())
+  customerId            String
+  customer              Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  // Transaction details
+  rawMerchantDescriptor String
+  merchantName          String?
+  merchantType          String?
+  amount                Float
+  transactionDate       DateTime
+  transactionTime       String
+
+  // Location data
+  merchantLocation      String?
+  merchantCity          String?
+  merchantState         String?
+  latitude              Float?
+  longitude             Float?
+
+  // Device data
+  deviceId              String?
+
+  // Card network data
+  cardNetwork           String   // Visa, Mastercard
+  authorizationCode     String?
+
+  // Status
+  status                String   @default("completed") // completed, disputed, reversed
+
+  disputes              Dispute[]
+
+  createdAt             DateTime @default(now())
+
+  @@index([customerId])
+  @@index([transactionDate])
+}
+
+// Main Dispute record
+model Dispute {
+  id                    String   @id @default(cuid())
+  caseNumber            String   @unique
+
+  customerId            String
+  customer              Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  transactionId         String
+  transaction           Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  // Dispute status
+  status                String   @default("intake") // intake, investigating, under_review, approved, denied, appealed
+  priority              String   @default("medium") // low, medium, high, critical
+
+  // Intake conversation
+  intakeConversation    Json?    // Array of chat messages
+  customerClaim         String?  // Customer's description of the issue
+
+  // Investigation results
+  merchantIntelligence  Json?    // Results from Merchant Intelligence Agent
+  evidenceCorrelation   Json?    // Results from Evidence Correlator Agent
+  riskAssessment        Json?    // Results from Risk Scoring Agent
+
+  // Scores and recommendations
+  fraudLikelihoodScore  Float?   // 0-100
+  friendlyFraudProbability Float? // 0-100
+  riskLevel             String?  // low, medium, high, critical
+  recommendedAction     String?  // approve, deny, escalate, needMoreInfo
+
+  // Human review
+  assignedAnalystId     String?
+  analystNotes          String?
+  analystDecision       String?  // approved, denied, escalated
+  analystDecisionDate   DateTime?
+
+  // Resolution
+  provisionalCreditGranted Boolean @default(false)
+  provisionalCreditAmount  Float?
+  provisionalCreditDate    DateTime?
+
+  chargebackFiled       Boolean @default(false)
+  chargebackReasonCode  String?
+  chargebackFiledDate   DateTime?
+  chargebackStatus      String?  // pending, won, lost
+
+  // Outcome communication
+  outcomeNotified       Boolean @default(false)
+  outcomeMessage        String?
+  outcomeNotifiedDate   DateTime?
+
+  // Reg E compliance tracking
+  regEDeadline          DateTime?
+
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  resolvedAt            DateTime?
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Analyst users who review disputes
+model Analyst {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  firstName     String
+  lastName      String
+  role          String   @default("analyst") // analyst, senior_analyst, manager
+  active        Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Fraud database flags (third-party intelligence)
+model FraudFlag {
+  id            String   @id @default(cuid())
+  customerId    String?
+  transactionId String?
+  flagType      String   // stolen_card, synthetic_identity, known_fraudster, etc.
+  severity      String   // low, medium, high, critical
+  source        String   // Third-party fraud database name
+  details       Json?
+  flaggedAt     DateTime @default(now())
+
+  @@index([customerId])
+  @@index([transactionId])
+}
